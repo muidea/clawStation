@@ -7,7 +7,7 @@
   * 桌面端实现仓库，负责 Tauri + React 前端与桌面运行时
 * `clawops/`
   * GitHub: `git@github.com:muidea/clawOps.git`
-  * 运维执行引擎仓库，负责 SSH / Docker / deploy / probe / rollback 等后台能力
+  * 运维执行引擎仓库，负责 SSH / Docker / deploy / probe / lifecycle / rollback 等后台能力
 
 ## Naming
 
@@ -65,6 +65,16 @@ make package-windows
 * 调试输出：`output/debug/`
 * 发布输出：`output/release/`
 * Windows 包：`output/claw-windows-gnu-debug.zip`
+
+## Managed Instance Rules
+
+当前实例托管能力按实例来源区分：
+
+* 全新部署实例
+  * 支持 `deploy`、`probe`、`restart`、`rollback`
+* 非全新部署的托管实例
+  * 仅支持 `deploy`、`probe`
+  * 不暴露 `restart`、`rollback`
 
 ## Layout
 
