@@ -1,0 +1,7 @@
+[submodule "clawconsole"]
+	path = clawconsole
+	url = git@github.com:muidea/clawConsole.git
+
+[submodule "clawops"]
+	path = clawops
+	url = git@github.com:muidea/clawOps.git
