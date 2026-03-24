@@ -5,3 +5,6 @@
 [submodule "clawops"]
 	path = clawops
 	url = git@github.com:muidea/clawOps.git
+[submodule "clawcli"]
+	path = clawcli
+	url = git@github.com:muidea/clawcli.git
