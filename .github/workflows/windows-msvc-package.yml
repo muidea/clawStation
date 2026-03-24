@@ -16,7 +16,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Init required submodules only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync -- clawconsole clawops
+          git -c protocol.version=2 submodule update --init --force --depth=1 clawconsole clawops
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
