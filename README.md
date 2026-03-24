@@ -64,7 +64,8 @@ make package-windows
 
 * 调试输出：`output/debug/`
 * 发布输出：`output/release/`
-* Windows 包：`output/claw-windows-gnu-debug.zip`
+* Windows 包：`output/ClawStation-windows-x86_64-gnu.zip` 或 `output/ClawStation-windows-x86_64-msvc.zip`
+* Windows staging 目录：`output/windows-gnu/` 或 `output/windows-msvc/`
 
 ## Managed Instance Rules
 
