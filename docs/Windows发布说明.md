@@ -134,6 +134,16 @@ make build-windows-gnu-release
 * 发布脚本默认不得使用本地编译 zip 直接发布到 GitHub Release
 * 本地脚本只负责 release 元数据
 * 发布资产以 CI 构建结果为准
+* 正式支持的发布资产只有 `ClawStation-windows-x86_64-gnu.zip`
+
+GitHub 平台限制说明：
+
+* GitHub Release 页面中的 `Source code (zip)` / `Source code (tar.gz)` 为 GitHub 基于 tag 自动生成的源码快照
+* 这些源码快照不是 workflow 上传的 release asset
+* 当前 GitHub Release 机制下无法由仓库脚本或 workflow 关闭该平台行为
+* 因此本仓库能保证的是：
+  * 我们只上传一个正式资产 `ClawStation-windows-x86_64-gnu.zip`
+  * 发布说明中明确源码快照不属于正式交付物
 
 常用示例：
 

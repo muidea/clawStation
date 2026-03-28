@@ -178,6 +178,8 @@ jobs:
           - Asset: \`ClawStation-windows-x86_64-gnu.zip\`
           - Size(bytes): \`${asset_size}\`
           - SHA256: \`${asset_sha}\`
+          - Supported release asset: \`ClawStation-windows-x86_64-gnu.zip\`
+          - Note: GitHub may still display platform-generated source snapshots for the tag; they are not part of the supported release delivery.
           EOF
 
           echo "RELEASE_NOTES_FILE=${notes_file}" >> "$GITHUB_ENV"
