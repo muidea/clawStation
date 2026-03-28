@@ -17,10 +17,20 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 range_spec() {
+  local target_ref
+  target_ref="$(resolved_target_ref)"
   if [[ -n "$BASE_REF" ]]; then
-    printf '%s..%s' "$BASE_REF" "$TAG"
+    printf '%s..%s' "$BASE_REF" "$target_ref"
   else
+    printf '%s' "$target_ref"
+  fi
+}
+
+resolved_target_ref() {
+  if git rev-parse --verify --quiet "$TAG" >/dev/null 2>&1; then
     printf '%s' "$TAG"
+  else
+    printf 'HEAD'
   fi
 }
 
@@ -67,6 +77,69 @@ append_entry() {
   fi
 }
 
+submodule_commit_at_ref() {
+  local ref="$1"
+  local path="$2"
+  git ls-tree "$ref" "$path" 2>/dev/null | awk 'NR == 1 { print $3 }'
+}
+
+append_release_entry() {
+  local subject="$1"
+  local prefix="${2:-}"
+  local text="$subject"
+  local lower
+  local bucket
+
+  if [[ -n "$prefix" ]]; then
+    text="${prefix}${subject}"
+  fi
+
+  lower="$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')"
+  if ! bucket="$(classify_subject "$lower")"; then
+    return 0
+  fi
+
+  case "$bucket" in
+    feature)
+      append_entry "$tmp_feature" "$text"
+      ;;
+    fix)
+      append_entry "$tmp_fix" "$text"
+      ;;
+    improvement)
+      append_entry "$tmp_improvement" "$text"
+      ;;
+  esac
+}
+
+collect_component_notes() {
+  local component_path="$1"
+  local component_label="$2"
+  local base_sha="$3"
+  local target_sha="$4"
+  local line
+  local sha
+  local subject
+
+  if [[ -z "$base_sha" || -z "$target_sha" || "$base_sha" == "$target_sha" ]]; then
+    return 0
+  fi
+
+  if ! git -C "$component_path" rev-parse --verify --quiet "${base_sha}^{commit}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if ! git -C "$component_path" rev-parse --verify --quiet "${target_sha}^{commit}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  while IFS=$'\t' read -r sha subject; do
+    subject="$(trim "$subject")"
+    [[ -z "$subject" ]] && continue
+    append_release_entry "$subject" "${component_label}："
+  done < <(git -C "$component_path" log --no-merges --format='%h%x09%s' "${base_sha}..${target_sha}")
+}
+
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 tmp_feature="$(mktemp)"
@@ -77,24 +150,19 @@ trap 'rm -f "$tmp_feature" "$tmp_fix" "$tmp_improvement"' EXIT
 while IFS=$'\t' read -r sha subject; do
   subject="$(trim "$subject")"
   [[ -z "$subject" ]] && continue
-
-  lower="$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')"
-  if ! bucket="$(classify_subject "$lower")"; then
-    continue
-  fi
-
-  case "$bucket" in
-    feature)
-      append_entry "$tmp_feature" "$subject"
-      ;;
-    fix)
-      append_entry "$tmp_fix" "$subject"
-      ;;
-    improvement)
-      append_entry "$tmp_improvement" "$subject"
-      ;;
-  esac
+  append_release_entry "$subject"
 done < <(git log --no-merges --format='%h%x09%s' "$(range_spec)")
+
+target_tree_ref="$(resolved_target_ref)"
+if [[ -n "$BASE_REF" ]] && git rev-parse --verify --quiet "$BASE_REF" >/dev/null 2>&1; then
+  base_clawconsole_sha="$(submodule_commit_at_ref "$BASE_REF" "clawconsole")"
+  target_clawconsole_sha="$(submodule_commit_at_ref "$target_tree_ref" "clawconsole")"
+  collect_component_notes "clawconsole" "clawconsole" "$base_clawconsole_sha" "$target_clawconsole_sha"
+
+  base_clawops_sha="$(submodule_commit_at_ref "$BASE_REF" "clawops")"
+  target_clawops_sha="$(submodule_commit_at_ref "$target_tree_ref" "clawops")"
+  collect_component_notes "clawops" "clawops" "$base_clawops_sha" "$target_clawops_sha"
+fi
 
 asset_size="-"
 asset_sha="-"
