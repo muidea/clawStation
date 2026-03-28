@@ -14,7 +14,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+          # For private dependencies across repositories, provide a PAT in CI_GH_PAT.
+          # Fallback to github.token for same-repo access.
+          token: ${{ secrets.CI_GH_PAT != '' && secrets.CI_GH_PAT || github.token }}
+
+      - name: Configure git auth for private submodules
+        shell: bash
+        env:
+          SUBMODULES_TOKEN: ${{ secrets.CI_GH_PAT != '' && secrets.CI_GH_PAT || github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUBMODULES_TOKEN}" ]; then
+            echo "CI_GH_PAT/github.token is empty; cannot access private submodules." >&2
+            exit 2
+          fi
+          git config --global url."https://x-access-token:${SUBMODULES_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${SUBMODULES_TOKEN}@github.com/".insteadOf "git@github.com:"
+
+      - name: Init required submodules only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync -- clawconsole clawops
+          git -c protocol.version=2 submodule update --init --force --depth=1 clawconsole clawops
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
