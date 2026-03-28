@@ -12,6 +12,7 @@ NOTES_FILE=""
 TITLE=""
 TAG=""
 BASE_REF=""
+UPLOAD_LOCAL_ASSET=0
 DRAFT=0
 DRY_RUN=0
 SKIP_BRANCH_PUSH=0
@@ -25,7 +26,8 @@ Usage: scripts/github-release.sh [options]
 Options:
   --tag <tag>              Use an explicit tag instead of auto-generating one.
   --title <title>          GitHub Release title. Defaults to the final tag.
-  --asset <path>           Release asset to upload. Defaults to output/ClawStation-windows-x86_64-gnu.zip.
+  --asset <path>           Local asset path used only with --upload-local-asset.
+  --upload-local-asset     Upload the local asset to GitHub Release. Disabled by default.
   --notes-file <path>      Write the generated summary to an explicit file.
   --base-ref <ref>         Use a custom git ref as the summary start point.
   --remote <name>          Git remote to push to. Defaults to origin.
@@ -52,6 +54,10 @@ while [[ $# -gt 0 ]]; do
     --asset)
       ASSET_PATH="${2:-}"
       shift 2
+      ;;
+    --upload-local-asset)
+      UPLOAD_LOCAL_ASSET=1
+      shift
       ;;
     --notes-file)
       NOTES_FILE="${2:-}"
@@ -223,7 +229,7 @@ build_notes_file() {
 
   mkdir -p "$(dirname "$notes_path")"
 
-  if [[ -f "$asset_path" ]]; then
+  if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 && -f "$asset_path" ]]; then
     asset_sha="$(sha256sum "$asset_path" | awk '{print $1}')"
     asset_size="$(wc -c < "$asset_path" | tr -d '[:space:]')"
   fi
@@ -251,10 +257,11 @@ $(render_changed_areas "$compare_range")
 
 ## 发布产物
 
-- Asset: \`$(basename "$asset_path")\`
-- Path: \`${asset_path}\`
-- Size(bytes): \`${asset_size}\`
-- SHA256: \`${asset_sha}\`
+- Release packaging: \`GitHub Actions windows-gnu-cross-package.yml\`
+- Local upload enabled: \`$([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf 'true' || printf 'false')\`
+- Local asset path: \`${asset_path}\`
+- Local asset size(bytes): \`${asset_size}\`
+- Local asset SHA256: \`${asset_sha}\`
 EOF
 }
 
@@ -318,8 +325,9 @@ if [[ -n "$BASE_REF" ]]; then
   compare_range="${BASE_REF}..HEAD"
 fi
 
-if [[ ! -f "$ASSET_PATH" ]]; then
-  echo "warning: release asset not found, release will be created without upload: ${ASSET_PATH}" >&2
+if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 && ! -f "$ASSET_PATH" ]]; then
+  echo "local asset upload requested but file not found: ${ASSET_PATH}" >&2
+  exit 2
 fi
 
 build_notes_file "$NOTES_FILE" "$TAG" "$TITLE" "$version" "$BASE_REF" "$compare_range" "$ASSET_PATH"
@@ -335,12 +343,12 @@ run_cmd git push "$REMOTE" "refs/tags/${TAG}"
 if [[ "$SKIP_RELEASE" -eq 0 ]]; then
   if gh release view "$TAG" >/dev/null 2>&1; then
     run_cmd gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES_FILE"
-    if [[ -f "$ASSET_PATH" ]]; then
+    if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]]; then
       run_cmd gh release upload "$TAG" "$ASSET_PATH" --clobber
     fi
   else
     create_args=(release create "$TAG")
-    if [[ -f "$ASSET_PATH" ]]; then
+    if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]]; then
       create_args+=("$ASSET_PATH")
     fi
     create_args+=(--title "$TITLE" --notes-file "$NOTES_FILE")
@@ -357,7 +365,8 @@ Release preparation completed.
 Tag:        ${TAG}
 Title:      ${TITLE}
 Notes file: ${NOTES_FILE}
-Asset:      ${ASSET_PATH}
+Local asset: ${ASSET_PATH}
+Upload local asset: $([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf 'true' || printf 'false')
 Remote:     ${REMOTE}
 Branch:     ${BRANCH}
 EOF

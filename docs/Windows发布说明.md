@@ -125,9 +125,15 @@ make build-windows-gnu-release
 1. 读取 `clawconsole/package.json` 的版本号。
 2. 自动生成 `v<version>` 或 `v<version>-<timestamp>` tag。
 3. 按最近一个 `v*` tag 到当前 `HEAD` 的提交，生成发布摘要。
-4. 默认引用 `output/ClawStation-windows-x86_64-gnu.zip` 作为发布资产。
-5. 推送当前分支和 tag 到 `origin`。
-6. 调用 `gh release create` 或 `gh release upload` 同步到 GitHub Release。
+4. 推送当前分支和 tag 到 `origin`。
+5. 调用 `gh release create` 或 `gh release edit` 同步到 GitHub Release。
+6. Windows zip 资产由 tag push 触发的 GitHub Actions 工作流构建并上传。
+
+当前明确约束：
+
+* 发布脚本默认不得使用本地编译 zip 直接发布到 GitHub Release
+* 本地脚本只负责 release 元数据
+* 发布资产以 CI 构建结果为准
 
 常用示例：
 
@@ -135,6 +141,7 @@ make build-windows-gnu-release
 ./scripts/github-release.sh
 ./scripts/github-release.sh --draft
 ./scripts/github-release.sh --tag v0.1.0-windows-fix --title "ClawStation Windows fix"
+./scripts/github-release.sh --upload-local-asset --asset /tmp/ClawStation-windows-x86_64-gnu.zip
 ./scripts/github-release.sh --dry-run --skip-release --allow-dirty
 make release-github ARGS="--draft"
 ```
@@ -143,7 +150,8 @@ make release-github ARGS="--draft"
 
 * 默认要求工作区干净；如仅预演流程，可加 `--allow-dirty --dry-run`
 * 需要本机已安装并登录 `gh`
-* 若标准 zip 不存在，脚本仍会生成摘要和 tag，但不会上传 release 资产
+* 默认不上传本地资产，CI 会在 tag push 后生成并回填 `ClawStation-windows-x86_64-gnu.zip`
+* 只有显式传入 `--upload-local-asset` 时，脚本才会尝试上传本地 zip
 
 ## 7. 系统前置条件
 Windows 运行时仍依赖以下系统组件：
