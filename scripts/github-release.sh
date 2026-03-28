@@ -163,47 +163,15 @@ build_notes_file() {
   local version="$4"
   local base_ref="$5"
   local asset_path="$6"
-  local head_sha branch_name asset_sha asset_size
-
-  head_sha="$(git rev-parse --short HEAD)"
-  branch_name="$BRANCH"
-  asset_sha="-"
-  asset_size="-"
 
   mkdir -p "$(dirname "$notes_path")"
 
-  if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 && -f "$asset_path" ]]; then
-    asset_sha="$(sha256sum "$asset_path" | awk '{print $1}')"
-    asset_size="$(wc -c < "$asset_path" | tr -d '[:space:]')"
-  fi
-
-  cat > "$notes_path" <<EOF
-# ${title}
-
-## 发布信息
-
-- Tag: \`${tag}\`
-- Version: \`${version}\`
-- Date: \`$(date '+%Y-%m-%d %H:%M:%S %Z')\`
-- Branch: \`${branch_name}\`
-- Commit: \`${head_sha}\`
-- Remote: \`${REMOTE}\`
-- Base ref: \`${base_ref:-<none>}\`
-
-## 发布产物
-
-- Release packaging: \`GitHub Actions windows-gnu-cross-package.yml\`
-- Local upload enabled: \`$([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf 'true' || printf 'false')\`
-- Local asset path: \`${asset_path}\`
-- Local asset size(bytes): \`${asset_size}\`
-- Local asset SHA256: \`${asset_sha}\`
-
-## 安装说明
-
-- Supported package: \`ClawStation-windows-x86_64-gnu.zip\`
-- Help docs: \`README.md\`, \`docs/使用说明.md\`, \`docs/Windows发布说明.md\`
-- Note: GitHub may still display platform-generated source snapshots for the tag; they are not part of the supported product delivery.
-EOF
+  bash "$ROOT_DIR/scripts/generate-release-notes.sh" \
+    "$tag" \
+    "$title" \
+    "$notes_path" \
+    "$base_ref" \
+    "$([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf '%s' "$asset_path")"
 }
 
 require_cmd git

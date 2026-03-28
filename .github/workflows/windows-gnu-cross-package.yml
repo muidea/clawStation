@@ -114,32 +114,12 @@ jobs:
           previous_tag="$(git tag --sort=-creatordate | grep -vx "$RELEASE_TAG" | head -n 1 || true)"
           notes_file="output/release-notes-${RELEASE_TAG}.md"
 
-          asset_path="output/ClawStation-windows-x86_64-gnu.zip"
-          asset_sha="$(sha256sum "$asset_path" | awk '{print $1}')"
-          asset_size="$(wc -c < "$asset_path" | tr -d '[:space:]')"
-
-          cat > "$notes_file" <<EOF
-          # ${RELEASE_TAG}
-
-          ## 发布信息
-
-          - Tag: \`${RELEASE_TAG}\`
-          - Commit: \`$(git rev-parse --short "$RELEASE_TAG")\`
-          - Base ref: \`${previous_tag:-<none>}\`
-          - Packaging: \`GitHub Actions windows-gnu-cross-package.yml\`
-
-          ## 发布产物
-
-          - Asset: \`ClawStation-windows-x86_64-gnu.zip\`
-          - Size(bytes): \`${asset_size}\`
-          - SHA256: \`${asset_sha}\`
-          - Supported release asset: \`ClawStation-windows-x86_64-gnu.zip\`
-          
-          ## 安装说明
-
-          - Help docs: \`README.md\`, \`docs/使用说明.md\`, \`docs/Windows发布说明.md\`
-          - Note: GitHub may still display platform-generated source snapshots for the tag; they are not part of the supported product delivery.
-          EOF
+          bash ./scripts/generate-release-notes.sh \
+            "$RELEASE_TAG" \
+            "$RELEASE_TAG" \
+            "$notes_file" \
+            "$previous_tag" \
+            "output/ClawStation-windows-x86_64-gnu.zip"
 
           echo "RELEASE_NOTES_FILE=${notes_file}" >> "$GITHUB_ENV"
 
