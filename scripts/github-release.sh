@@ -156,70 +156,13 @@ git_ref_exists() {
   git rev-parse --verify --quiet "$1" >/dev/null 2>&1
 }
 
-render_commit_lines() {
-  local range="$1"
-  local lines
-  if [[ -n "$range" ]]; then
-    lines="$(git log --no-merges --pretty=format:'- %s (%h)' "$range" --max-count=30)"
-  else
-    lines="$(git log --no-merges --pretty=format:'- %s (%h)' --max-count=30)"
-  fi
-
-  if [[ -n "$lines" ]]; then
-    printf '%s\n' "$lines"
-  else
-    printf '%s\n' "- No non-merge commits found."
-  fi
-}
-
-render_changed_areas() {
-  local range="$1"
-  local files
-  if [[ -n "$range" ]]; then
-    files="$(git diff --name-only "$range")"
-  else
-    files="$(git show --pretty='' --name-only HEAD)"
-  fi
-
-  if [[ -z "$files" ]]; then
-    printf '%s\n' "- No file changes detected."
-    return 0
-  fi
-
-  printf '%s\n' "$files" | awk '
-    BEGIN {
-      counts["clawconsole"] = 0;
-      counts["clawops"] = 0;
-      counts["docs"] = 0;
-      counts["github"] = 0;
-      counts["scripts"] = 0;
-      counts["other"] = 0;
-    }
-    /^clawconsole\// { counts["clawconsole"]++; next }
-    /^clawops\// { counts["clawops"]++; next }
-    /^docs\// { counts["docs"]++; next }
-    /^\.github\// { counts["github"]++; next }
-    /^scripts\// { counts["scripts"]++; next }
-    { counts["other"]++ }
-    END {
-      if (counts["clawconsole"] > 0) printf("- clawconsole: %d files\n", counts["clawconsole"]);
-      if (counts["clawops"] > 0) printf("- clawops: %d files\n", counts["clawops"]);
-      if (counts["docs"] > 0) printf("- docs: %d files\n", counts["docs"]);
-      if (counts["github"] > 0) printf("- .github: %d files\n", counts["github"]);
-      if (counts["scripts"] > 0) printf("- scripts: %d files\n", counts["scripts"]);
-      if (counts["other"] > 0) printf("- other: %d files\n", counts["other"]);
-    }
-  '
-}
-
 build_notes_file() {
   local notes_path="$1"
   local tag="$2"
   local title="$3"
   local version="$4"
   local base_ref="$5"
-  local compare_range="$6"
-  local asset_path="$7"
+  local asset_path="$6"
   local head_sha branch_name asset_sha asset_size
 
   head_sha="$(git rev-parse --short HEAD)"
@@ -247,14 +190,6 @@ build_notes_file() {
 - Remote: \`${REMOTE}\`
 - Base ref: \`${base_ref:-<none>}\`
 
-## 变更摘要
-
-$(render_commit_lines "$compare_range")
-
-## 变更范围
-
-$(render_changed_areas "$compare_range")
-
 ## 发布产物
 
 - Release packaging: \`GitHub Actions windows-gnu-cross-package.yml\`
@@ -262,6 +197,12 @@ $(render_changed_areas "$compare_range")
 - Local asset path: \`${asset_path}\`
 - Local asset size(bytes): \`${asset_size}\`
 - Local asset SHA256: \`${asset_sha}\`
+
+## 安装说明
+
+- Supported package: \`ClawStation-windows-x86_64-gnu.zip\`
+- Help docs: \`README.md\`, \`docs/使用说明.md\`, \`docs/Windows发布说明.md\`
+- Note: GitHub may still display platform-generated source snapshots for the tag; they are not part of the supported product delivery.
 EOF
 }
 
@@ -324,17 +265,12 @@ if git ls-remote --exit-code --tags "$REMOTE" "refs/tags/${TAG}" >/dev/null 2>&1
   exit 2
 fi
 
-compare_range=""
-if [[ -n "$BASE_REF" ]]; then
-  compare_range="${BASE_REF}..HEAD"
-fi
-
 if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 && ! -f "$ASSET_PATH" ]]; then
   echo "local asset upload requested but file not found: ${ASSET_PATH}" >&2
   exit 2
 fi
 
-build_notes_file "$NOTES_FILE" "$TAG" "$TITLE" "$version" "$BASE_REF" "$compare_range" "$ASSET_PATH"
+build_notes_file "$NOTES_FILE" "$TAG" "$TITLE" "$version" "$BASE_REF" "$ASSET_PATH"
 
 run_cmd git fetch --tags "$REMOTE"
 run_cmd git tag -a "$TAG" -F "$NOTES_FILE"

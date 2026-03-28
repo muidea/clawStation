@@ -112,44 +112,7 @@ jobs:
           set -euo pipefail
 
           previous_tag="$(git tag --sort=-creatordate | grep -vx "$RELEASE_TAG" | head -n 1 || true)"
-          compare_range=""
-          if [ -n "$previous_tag" ]; then
-            compare_range="${previous_tag}..${RELEASE_TAG}"
-          fi
-
           notes_file="output/release-notes-${RELEASE_TAG}.md"
-          commit_lines="$(git log --no-merges --pretty=format:'- %s (%h)' ${compare_range:+$compare_range} --max-count=30)"
-          if [ -z "$commit_lines" ]; then
-            commit_lines="- No non-merge commits found."
-          fi
-
-          changed_areas="$(git diff --name-only ${compare_range:+$compare_range} | awk '
-            BEGIN {
-              counts["clawconsole"] = 0;
-              counts["clawops"] = 0;
-              counts["docs"] = 0;
-              counts["github"] = 0;
-              counts["scripts"] = 0;
-              counts["other"] = 0;
-            }
-            /^clawconsole\// { counts["clawconsole"]++; next }
-            /^clawops\// { counts["clawops"]++; next }
-            /^docs\// { counts["docs"]++; next }
-            /^\.github\// { counts["github"]++; next }
-            /^scripts\// { counts["scripts"]++; next }
-            { counts["other"]++ }
-            END {
-              if (counts["clawconsole"] > 0) printf("- clawconsole: %d files\n", counts["clawconsole"]);
-              if (counts["clawops"] > 0) printf("- clawops: %d files\n", counts["clawops"]);
-              if (counts["docs"] > 0) printf("- docs: %d files\n", counts["docs"]);
-              if (counts["github"] > 0) printf("- .github: %d files\n", counts["github"]);
-              if (counts["scripts"] > 0) printf("- scripts: %d files\n", counts["scripts"]);
-              if (counts["other"] > 0) printf("- other: %d files\n", counts["other"]);
-            }
-          ')"
-          if [ -z "$changed_areas" ]; then
-            changed_areas="- No file changes detected."
-          fi
 
           asset_path="output/ClawStation-windows-x86_64-gnu.zip"
           asset_sha="$(sha256sum "$asset_path" | awk '{print $1}')"
@@ -165,21 +128,17 @@ jobs:
           - Base ref: \`${previous_tag:-<none>}\`
           - Packaging: \`GitHub Actions windows-gnu-cross-package.yml\`
 
-          ## 变更摘要
-
-          ${commit_lines}
-
-          ## 变更范围
-
-          ${changed_areas}
-
           ## 发布产物
 
           - Asset: \`ClawStation-windows-x86_64-gnu.zip\`
           - Size(bytes): \`${asset_size}\`
           - SHA256: \`${asset_sha}\`
           - Supported release asset: \`ClawStation-windows-x86_64-gnu.zip\`
-          - Note: GitHub may still display platform-generated source snapshots for the tag; they are not part of the supported release delivery.
+          
+          ## 安装说明
+
+          - Help docs: \`README.md\`, \`docs/使用说明.md\`, \`docs/Windows发布说明.md\`
+          - Note: GitHub may still display platform-generated source snapshots for the tag; they are not part of the supported product delivery.
           EOF
 
           echo "RELEASE_NOTES_FILE=${notes_file}" >> "$GITHUB_ENV"
