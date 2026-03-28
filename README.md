@@ -1,89 +1,131 @@
-# ClawStation Workspace
+# ClawStation
 
-`clawStation/` 是聚合工作区仓库，用来统一管理桌面产品 `ClawStation` 及其两个子模块：
+`ClawStation` 是一个面向 OpenClaw 实例的桌面管理工具，用来把实例接入、访问、基础运维和聊天能力收口到同一个应用中。
 
-* `clawconsole/`
-  * GitHub: `git@github.com:muidea/clawConsole.git`
-  * 桌面端实现仓库，负责 Tauri + React 前端与桌面运行时
-* `clawops/`
-  * GitHub: `git@github.com:muidea/clawOps.git`
-  * 运维执行引擎仓库，负责 SSH / Docker / deploy / probe / lifecycle / rollback 等后台能力
+它适合需要统一管理一个或多个 OpenClaw 实例的用户。你可以用它接管已有实例，也可以创建托管实例，并在同一界面中完成连接、诊断、部署、日志查看和聊天操作。
 
-## Naming
+## 主要功能
 
-命名约定如下：
+### 实例管理
 
-* 产品名：`ClawStation`
-* 聚合仓库目录：`clawStation/`
-* 子仓库目录：`clawconsole/`、`clawops/`
+* 新建、编辑、删除实例
+* 区分托管实例和已接入实例
+* 按环境组织和查看实例
+* 设置默认实例
 
-这意味着：
+### 认证与信任
 
-* 用户可见名称、窗口标题、打包产物统一使用 `ClawStation`
-* 代码路径、submodule 路径、Git 仓库名继续使用 `clawconsole` / `clawops`
+* 管理 SSH 认证配置
+* 保存和清理密码或私钥
+* 检查认证是否可用
+* 扫描并信任目标主机密钥
 
-## Submodules
+### 连接与访问
 
-首次克隆后执行：
+* 自动建立实例访问通道
+* 为实例生成稳定的本地访问入口
+* 一键在浏览器中打开实例
+* 支持断开和重新连接
 
-```bash
-git clone git@github.com:muidea/clawStation.git
-cd clawStation
-git submodule update --init --recursive
-```
+### 托管运维
 
-如果子模块已有更新，执行：
+* 部署实例
+* 探测实例状态
+* 对支持的托管实例执行重启和回滚
 
-```bash
-git submodule update --remote --recursive
-```
+### 诊断与日志
 
-## Build
+* 查看实例诊断结果
+* 查看接入或接管校验结果
+* 查看实例最近操作
+* 查看实例聚合日志
 
-基础检查：
+### 配置管理
 
-```bash
-make check
-make test
-```
+* 导出本地配置
+* 导入本地配置
+* 查看归档内容
+* 恢复历史归档
 
-本地调试构建：
+### 自动认证匹配与聊天
 
-```bash
-make build
-make run
-```
+* 自动发现可用接入信息
+* 自动完成设备配对和握手
+* 实例验证通过后直接进入聊天
+* 支持查看聊天历史
 
-Windows 验证包：
+## 安装与启动
 
-```bash
-make package-windows
-```
+1. 保持 `clawstation.exe` 和 `clawops.exe` 在同一目录。
+2. 确认系统已安装 Microsoft Edge WebView2 Runtime。
+3. 双击运行 `clawstation.exe`。
 
-产物位置：
+首次启动后，应用会在本地创建自己的配置和数据目录。
 
-* 调试输出：`output/debug/`
-* 发布输出：`output/release/`
-* Windows 包：`output/ClawStation-windows-x86_64-gnu.zip` 或 `output/ClawStation-windows-x86_64-msvc.zip`
-* Windows staging 目录：`output/windows-gnu/` 或 `output/windows-msvc/`
+## 使用流程
 
-## Managed Instance Rules
+### 1. 添加认证配置
 
-当前实例托管能力按实例来源区分：
+首次使用时，先添加一条可用于目标机器的认证配置：
 
-* 全新部署实例
-  * 支持 `deploy`、`probe`、`restart`、`rollback`
-* 非全新部署的托管实例
-  * 仅支持 `deploy`、`probe`
-  * 不暴露 `restart`、`rollback`
+1. 填写 SSH 用户。
+2. 选择认证方式。
+3. 保存密码或私钥。
+4. 确认认证状态正常。
 
-## Layout
+### 2. 添加实例
 
-```text
-clawStation/
-├── clawconsole/   # desktop app submodule
-├── clawops/       # ops engine submodule
-├── docs/          # workspace-level docs
-├── packaging/     # packaging metadata
-└── Makefile       # workspace build entry
-```
+你可以按两种方式添加实例：
+
+* 接管已有实例
+  适用于已经存在的 OpenClaw 实例。
+* 创建托管实例
+  适用于希望由 ClawStation 持续管理的实例。
+
+实例添加后，应用会继续执行连接验证。验证通过后，实例即可进入可用状态。
+
+### 3. 连接并访问实例
+
+在实例详情中，你可以：
+
+* 建立连接
+* 打开浏览器入口
+* 查看当前状态
+* 查看错误信息
+* 在需要时重新建立访问通道
+
+### 4. 执行实例操作
+
+对于托管实例，你可以在实例详情中直接发起：
+
+* 部署
+* 探测
+* 重启
+* 回滚
+
+所有结果、状态变化和日志都会按实例维度展示。
+
+### 5. 使用聊天能力
+
+当实例验证通过后，你可以直接：
+
+* 发起聊天
+* 查看历史记录
+* 根据提示处理认证或握手失败问题
+
+### 6. 备份或迁移配置
+
+如果你需要更换机器或保留当前设置，可以使用：
+
+* 导出配置
+* 导入配置
+* 恢复历史归档
+
+## 运行要求
+
+使用前请确认：
+
+* 目标机器可以通过 SSH 访问
+* 目标环境已经具备 OpenClaw 运行条件
+* 你已经准备好可用的认证方式，例如密码或私钥
+* 本机已安装 Microsoft Edge WebView2 Runtime

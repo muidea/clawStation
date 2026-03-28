@@ -8,6 +8,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-windows-gnu:
     runs-on: ubuntu-24.04
@@ -106,3 +109,22 @@ jobs:
           name: ClawStation-windows-x86_64-gnu
           path: output/ClawStation-windows-x86_64-gnu.zip
           if-no-files-found: error
+
+      - name: Publish GitHub release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_ASSET: output/ClawStation-windows-x86_64-gnu.zip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              "$RELEASE_ASSET" \
+              --title "$RELEASE_TAG" \
+              --notes "ClawStation Windows GNU release package for $RELEASE_TAG."
+          else
+            gh release upload "$RELEASE_TAG" "$RELEASE_ASSET" --clobber
+          fi

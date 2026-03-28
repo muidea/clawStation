@@ -115,6 +115,36 @@ make build-windows-gnu-release
 * `clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/WebView2Loader.dll`
 * `clawops/target/x86_64-pc-windows-gnu/release/clawops.exe`
 
+### 6.4 推送 GitHub 发布
+仓库根目录提供了本地发布脚本：
+
+* `scripts/github-release.sh`
+
+默认行为：
+
+1. 读取 `clawconsole/package.json` 的版本号。
+2. 自动生成 `v<version>` 或 `v<version>-<timestamp>` tag。
+3. 按最近一个 `v*` tag 到当前 `HEAD` 的提交，生成发布摘要。
+4. 默认引用 `output/ClawStation-windows-x86_64-gnu.zip` 作为发布资产。
+5. 推送当前分支和 tag 到 `origin`。
+6. 调用 `gh release create` 或 `gh release upload` 同步到 GitHub Release。
+
+常用示例：
+
+```bash
+./scripts/github-release.sh
+./scripts/github-release.sh --draft
+./scripts/github-release.sh --tag v0.1.0-windows-fix --title "ClawStation Windows fix"
+./scripts/github-release.sh --dry-run --skip-release --allow-dirty
+make release-github ARGS="--draft"
+```
+
+注意：
+
+* 默认要求工作区干净；如仅预演流程，可加 `--allow-dirty --dry-run`
+* 需要本机已安装并登录 `gh`
+* 若标准 zip 不存在，脚本仍会生成摘要和 tag，但不会上传 release 资产
+
 ## 7. 系统前置条件
 Windows 运行时仍依赖以下系统组件：
 

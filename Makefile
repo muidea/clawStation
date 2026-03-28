@@ -34,7 +34,7 @@ WINDOWS_README := $(ROOT_DIR)/packaging/windows-README.txt
 WINDOWS_GNU_ZIP := $(OUTPUT_DIR)/ClawStation-windows-x86_64-gnu.zip
 WINDOWS_MSVC_ZIP := $(OUTPUT_DIR)/ClawStation-windows-x86_64-msvc.zip
 
-.PHONY: help build build-release build-windows build-windows-gnu build-windows-msvc package-windows package-windows-gnu package-windows-msvc check test stage-debug stage-release stage-windows-gnu stage-windows-msvc clean clean-output run run-release force
+.PHONY: help build build-release build-windows build-windows-gnu build-windows-msvc package-windows package-windows-gnu package-windows-msvc release-github check test stage-debug stage-release stage-windows-gnu stage-windows-msvc clean clean-output run run-release force
 
 help:
 	@printf "%s\n" \
@@ -42,6 +42,7 @@ help:
 		"make build-release  - 编译 ClawStation + clawops 发布版，并输出到 output/release/" \
 		"make build-windows  - 编译 Windows 发布版，并输出到 output/windows-*/" \
 		"make package-windows - 编译并打包 Windows 发布 zip (Linux/WSL -> gnu, Windows -> msvc)" \
+		"make release-github ARGS='...' - 生成 release 摘要、创建 tag、推送到 GitHub，并可创建 GitHub Release" \
 		"make check          - 运行 ClawStation / clawops 的 cargo check" \
 		"make test           - 运行 clawops 测试" \
 		"make run            - 运行 output/debug/bin/clawstation" \
@@ -64,6 +65,9 @@ package-windows: package-windows-$(WINDOWS_PACKAGE_TARGET)
 package-windows-gnu: $(WINDOWS_GNU_ZIP)
 
 package-windows-msvc: $(WINDOWS_MSVC_ZIP)
+
+release-github:
+	bash "$(ROOT_DIR)/scripts/github-release.sh" $(ARGS)
 
 check:
 	cd "$(CLAWCONSOLE_DIR)" && cargo check --manifest-path src-tauri/Cargo.toml
