@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-windows-gnu:
-    runs-on: windows-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -53,6 +53,11 @@ jobs:
         with:
           targets: x86_64-pc-windows-gnu
 
+      - name: Install Ubuntu dependencies for Windows GNU cross-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64 zip
+
       - name: Install clawconsole dependencies
         working-directory: clawconsole
         run: npm ci
@@ -68,31 +73,32 @@ jobs:
         run: cargo build --release --target x86_64-pc-windows-gnu
 
       - name: Stage windows gnu package
-        shell: pwsh
+        shell: bash
         run: |
-          $ErrorActionPreference = "Stop"
-          $stageDir = "output/windows-gnu"
-          New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+          set -euo pipefail
+          stageDir="output/windows-gnu"
+          mkdir -p "$stageDir"
 
-          Copy-Item "clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/clawstation.exe" "$stageDir/clawstation.exe" -Force
-          Copy-Item "clawops/target/x86_64-pc-windows-gnu/release/clawops.exe" "$stageDir/clawops.exe" -Force
-          Copy-Item "packaging/windows-README.txt" "$stageDir/README.txt" -Force
+          cp "clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/clawstation.exe" "$stageDir/clawstation.exe"
+          cp "clawops/target/x86_64-pc-windows-gnu/release/clawops.exe" "$stageDir/clawops.exe"
+          cp "packaging/windows-README.txt" "$stageDir/README.txt"
 
-          $webview2 = "clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/WebView2Loader.dll"
-          if (Test-Path $webview2) {
-            Copy-Item $webview2 "$stageDir/WebView2Loader.dll" -Force
-          }
+          webview2="clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/WebView2Loader.dll"
+          if [ -f "$webview2" ]; then
+            cp "$webview2" "$stageDir/WebView2Loader.dll"
+          fi
 
       - name: Archive windows gnu package
-        shell: pwsh
+        shell: bash
         run: |
-          $ErrorActionPreference = "Stop"
-          $zipPath = "output/ClawStation-windows-x86_64-gnu.zip"
-          if (Test-Path $zipPath) {
-            Remove-Item $zipPath -Force
-          }
-          Compress-Archive -Path "output/windows-gnu/*" -DestinationPath $zipPath -CompressionLevel Optimal
-          Get-Item $zipPath | Format-List FullName,Length,LastWriteTime
+          set -euo pipefail
+          zipPath="output/ClawStation-windows-x86_64-gnu.zip"
+          rm -f "$zipPath"
+          (
+            cd output/windows-gnu
+            zip -r "../ClawStation-windows-x86_64-gnu.zip" .
+          )
+          ls -lh "$zipPath"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
