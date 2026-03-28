@@ -266,9 +266,13 @@ EOF
 }
 
 require_cmd git
-
-if [[ "$SKIP_RELEASE" -eq 0 ]]; then
-  require_cmd gh
+HAS_GH=1
+if ! command -v gh >/dev/null 2>&1; then
+  HAS_GH=0
+  if [[ "$SKIP_RELEASE" -eq 0 ]]; then
+    echo "warning: gh not found locally; release metadata creation will be delegated to GitHub Actions after the tag push." >&2
+    SKIP_RELEASE=1
+  fi
 fi
 
 version="$(detect_version)"
@@ -367,6 +371,8 @@ Title:      ${TITLE}
 Notes file: ${NOTES_FILE}
 Local asset: ${ASSET_PATH}
 Upload local asset: $([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf 'true' || printf 'false')
+Local gh available: $([[ "$HAS_GH" -eq 1 ]] && printf 'true' || printf 'false')
+GitHub Release metadata via local gh: $([[ "$SKIP_RELEASE" -eq 0 ]] && printf 'true' || printf 'false')
 Remote:     ${REMOTE}
 Branch:     ${BRANCH}
 EOF
