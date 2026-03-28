@@ -1,4 +1,4 @@
-name: Windows MSVC Package
+name: Windows GNU Package
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
       - "v*"
 
 jobs:
-  build-windows-msvc:
+  build-windows-gnu:
     runs-on: windows-latest
 
     steps:
@@ -51,52 +51,52 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-msvc
+          targets: x86_64-pc-windows-gnu
 
       - name: Install clawconsole dependencies
         working-directory: clawconsole
         run: npm ci
 
-      - name: Build clawconsole (windows msvc, release, no-bundle)
+      - name: Build clawconsole (windows gnu, release, no-bundle)
         working-directory: clawconsole
         run: |
           npm run build
-          node ./scripts/tauri-cli.mjs build --target x86_64-pc-windows-msvc --no-bundle
+          node ./scripts/tauri-cli.mjs build --target x86_64-pc-windows-gnu --no-bundle
 
-      - name: Build clawops (windows msvc, release)
+      - name: Build clawops (windows gnu, release)
         working-directory: clawops
-        run: cargo build --release --target x86_64-pc-windows-msvc
+        run: cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Stage windows msvc package
+      - name: Stage windows gnu package
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $stageDir = "output/windows-msvc"
+          $stageDir = "output/windows-gnu"
           New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 
-          Copy-Item "clawconsole/src-tauri/target/x86_64-pc-windows-msvc/release/clawstation.exe" "$stageDir/clawstation.exe" -Force
-          Copy-Item "clawops/target/x86_64-pc-windows-msvc/release/clawops.exe" "$stageDir/clawops.exe" -Force
+          Copy-Item "clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/clawstation.exe" "$stageDir/clawstation.exe" -Force
+          Copy-Item "clawops/target/x86_64-pc-windows-gnu/release/clawops.exe" "$stageDir/clawops.exe" -Force
           Copy-Item "packaging/windows-README.txt" "$stageDir/README.txt" -Force
 
-          $webview2 = "clawconsole/src-tauri/target/x86_64-pc-windows-msvc/release/WebView2Loader.dll"
+          $webview2 = "clawconsole/src-tauri/target/x86_64-pc-windows-gnu/release/WebView2Loader.dll"
           if (Test-Path $webview2) {
             Copy-Item $webview2 "$stageDir/WebView2Loader.dll" -Force
           }
 
-      - name: Archive windows msvc package
+      - name: Archive windows gnu package
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $zipPath = "output/ClawStation-windows-x86_64-msvc.zip"
+          $zipPath = "output/ClawStation-windows-x86_64-gnu.zip"
           if (Test-Path $zipPath) {
             Remove-Item $zipPath -Force
           }
-          Compress-Archive -Path "output/windows-msvc/*" -DestinationPath $zipPath -CompressionLevel Optimal
+          Compress-Archive -Path "output/windows-gnu/*" -DestinationPath $zipPath -CompressionLevel Optimal
           Get-Item $zipPath | Format-List FullName,Length,LastWriteTime
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ClawStation-windows-x86_64-msvc
-          path: output/ClawStation-windows-x86_64-msvc.zip
+          name: ClawStation-windows-x86_64-gnu
+          path: output/ClawStation-windows-x86_64-gnu.zip
           if-no-files-found: error
