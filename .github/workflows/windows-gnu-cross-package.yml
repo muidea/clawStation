@@ -2,6 +2,15 @@ name: Windows GNU Cross Package
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing tag to rebuild notes/release assets for, for example v0.1.4
+        required: false
+        type: string
+      base_tag:
+        description: Optional previous tag used as the release notes base, for example v0.1.3
+        required: false
+        type: string
   push:
     branches:
       - master
@@ -19,6 +28,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && inputs.release_tag || github.ref }}
+          fetch-depth: 0
           submodules: false
           # For private dependencies across repositories, provide a PAT in CI_GH_PAT.
           # Fallback to github.token for same-repo access.
@@ -42,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           git submodule sync -- clawconsole clawops
-          git -c protocol.version=2 submodule update --init --force --depth=1 clawconsole clawops
+          git -c protocol.version=2 submodule update --init --force clawconsole clawops
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -104,14 +115,18 @@ jobs:
           ls -lh "$zipPath"
 
       - name: Generate release notes
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && inputs.release_tag || github.ref_name }}
+          BASE_TAG_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.base_tag || '' }}
         shell: bash
         run: |
           set -euo pipefail
 
-          previous_tag="$(git tag --sort=-creatordate | grep -vx "$RELEASE_TAG" | head -n 1 || true)"
+          previous_tag="${BASE_TAG_INPUT:-}"
+          if [ -z "$previous_tag" ]; then
+            previous_tag="$(git tag --sort=-creatordate | grep -vx "$RELEASE_TAG" | head -n 1 || true)"
+          fi
           notes_file="output/release-notes-${RELEASE_TAG}.md"
 
           bash ./scripts/generate-release-notes.sh \
@@ -131,10 +146,10 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release asset
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && inputs.release_tag || github.ref_name }}
           RELEASE_ASSET: output/ClawStation-windows-x86_64-gnu.zip
           RELEASE_NOTES_FILE: ${{ env.RELEASE_NOTES_FILE }}
         shell: bash

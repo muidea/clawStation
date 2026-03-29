@@ -41,10 +41,21 @@ trim() {
   printf '%s' "$value"
 }
 
+normalize_subject() {
+  local subject="$1"
+
+  if [[ "$subject" =~ ^Release[[:space:]]v[0-9]+\.[0-9]+\.[0-9]+[[:space:]]+(.+)$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  printf '%s' "$subject"
+}
+
 classify_subject() {
   local lower="$1"
 
-  if [[ "$lower" =~ ^(ci|chore|docs|doc|build|release)(\(.+\))?:[[:space:]] ]]; then
+  if [[ "$lower" =~ ^(ci|chore|docs|doc|build)(\(.+\))?:[[:space:]] ]]; then
     return 1
   fi
   if [[ "$lower" =~ ^(prepare|archive|track|clarify|rename|refresh)[[:space:]] ]]; then
@@ -56,12 +67,12 @@ classify_subject() {
     return 0
   fi
 
-  if [[ "$lower" =~ (^fix(\(.+\))?:)|(^bugfix[[:space:]])|(^avoid[[:space:]])|(^resolve[[:space:]])|(^repair[[:space:]])|(^correct[[:space:]]) ]]; then
+  if [[ "$lower" =~ (^fix(\(.+\))?:)|(^bugfix[[:space:]])|(^avoid[[:space:]])|(^resolve[[:space:]])|(^repair[[:space:]])|(^correct[[:space:]])|(^.*[[:space:]]fix(es)?$)|(^.*[[:space:]]bugfix(es)?$) ]]; then
     printf 'fix'
     return 0
   fi
 
-  if [[ "$lower" =~ (wizard|dialog|chat|gateway|pairing|token|instance|deploy|probe|restart|rollback|auth|credential|diagnostic|log|tunnel|browser|storage|security|encrypt|private[[:space:]]key|password) ]]; then
+  if [[ "$lower" =~ (wizard|dialog|chat|gateway|pairing|token|instance|deploy|probe|restart|rollback|auth|credential|diagnostic|log|tunnel|browser|storage|security|encrypt|private[[:space:]]key|password|macos|windows|transport|integration|host[[:space:]]process|shell|path|managed[[:space:]]access) ]]; then
     printf 'improvement'
     return 0
   fi
@@ -86,15 +97,18 @@ submodule_commit_at_ref() {
 append_release_entry() {
   local subject="$1"
   local prefix="${2:-}"
-  local text="$subject"
+  local normalized
+  local text
   local lower
   local bucket
 
+  normalized="$(normalize_subject "$subject")"
+  text="$normalized"
   if [[ -n "$prefix" ]]; then
-    text="${prefix}${subject}"
+    text="${prefix}${normalized}"
   fi
 
-  lower="$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')"
+  lower="$(printf '%s' "$normalized" | tr '[:upper:]' '[:lower:]')"
   if ! bucket="$(classify_subject "$lower")"; then
     return 0
   fi
