@@ -42,9 +42,21 @@ Windows 运行环境至少需要：
 
 * 正式支持的发布资产只有 `ClawStation-windows-x86_64-gnu.zip`
 * GitHub Release 里的产品资产由 CI 构建并上传
-* 发布脚本默认不使用本地编译 zip 直接发布
+* 发布脚本默认只负责生成 release notes、推送分支和 tag
+* tag 推送后，由 GitHub Actions 负责生成并上传正式产品包
+* 发布流程中不包含本地编译步骤
 
-## 6. 关于 GitHub Source code
+## 6. 推荐发布流程
+
+推荐的正式发布流程如下：
+
+1. 完成版本号、文档和代码提交
+2. 推送对应分支
+3. 执行发布脚本创建并推送版本 tag
+4. 等待 GitHub Actions 生成 `ClawStation-windows-x86_64-gnu.zip`
+5. 在 GitHub Release 页面核对 release notes 和最终资产
+
+## 7. 关于 GitHub Source code
 
 GitHub Release 页面可能仍会显示：
 

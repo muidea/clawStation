@@ -42,7 +42,7 @@ help:
 		"make build-release  - 编译 ClawStation + clawops 发布版，并输出到 output/release/" \
 		"make build-windows  - 编译 Windows 发布版，并输出到 output/windows-*/" \
 		"make package-windows - 编译并打包 Windows 发布 zip (Linux/WSL -> gnu, Windows -> msvc)" \
-		"make release-github ARGS='...' - 生成 release 摘要、创建 tag、推送到 GitHub，并可创建 GitHub Release" \
+		"make release-github ARGS='...' - 生成 release 摘要、创建 tag、推送到 GitHub；正式 Windows 资产由 GitHub Actions 构建发布" \
 		"make check          - 运行 ClawStation / clawops 的 cargo check" \
 		"make test           - 运行 clawops 测试" \
 		"make run            - 运行 output/debug/bin/clawstation" \

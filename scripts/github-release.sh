@@ -7,12 +7,10 @@ cd "$ROOT_DIR"
 
 REMOTE="origin"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-ASSET_PATH="$ROOT_DIR/output/ClawStation-windows-x86_64-gnu.zip"
 NOTES_FILE=""
 TITLE=""
 TAG=""
 BASE_REF=""
-UPLOAD_LOCAL_ASSET=0
 DRAFT=0
 DRY_RUN=0
 SKIP_BRANCH_PUSH=0
@@ -26,8 +24,6 @@ Usage: scripts/github-release.sh [options]
 Options:
   --tag <tag>              Use an explicit tag instead of auto-generating one.
   --title <title>          GitHub Release title. Defaults to the final tag.
-  --asset <path>           Local asset path used only with --upload-local-asset.
-  --upload-local-asset     Upload the local asset to GitHub Release. Disabled by default.
   --notes-file <path>      Write the generated summary to an explicit file.
   --base-ref <ref>         Use a custom git ref as the summary start point.
   --remote <name>          Git remote to push to. Defaults to origin.
@@ -38,6 +34,11 @@ Options:
   --allow-dirty            Allow running with uncommitted changes.
   --dry-run                Print planned commands without executing them.
   -h, --help               Show this help text.
+
+Default flow:
+  Push the release commit and tag only. GitHub Actions builds and publishes the
+  official Windows asset after the tag is pushed. Local compilation is not part
+  of the release process.
 EOF
 }
 
@@ -50,14 +51,6 @@ while [[ $# -gt 0 ]]; do
     --title)
       TITLE="${2:-}"
       shift 2
-      ;;
-    --asset)
-      ASSET_PATH="${2:-}"
-      shift 2
-      ;;
-    --upload-local-asset)
-      UPLOAD_LOCAL_ASSET=1
-      shift
       ;;
     --notes-file)
       NOTES_FILE="${2:-}"
@@ -160,9 +153,8 @@ build_notes_file() {
   local notes_path="$1"
   local tag="$2"
   local title="$3"
-  local version="$4"
+  local _version="$4"
   local base_ref="$5"
-  local asset_path="$6"
 
   mkdir -p "$(dirname "$notes_path")"
 
@@ -170,8 +162,7 @@ build_notes_file() {
     "$tag" \
     "$title" \
     "$notes_path" \
-    "$base_ref" \
-    "$([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf '%s' "$asset_path")"
+    "$base_ref"
 }
 
 require_cmd git
@@ -233,12 +224,7 @@ if git ls-remote --exit-code --tags "$REMOTE" "refs/tags/${TAG}" >/dev/null 2>&1
   exit 2
 fi
 
-if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 && ! -f "$ASSET_PATH" ]]; then
-  echo "local asset upload requested but file not found: ${ASSET_PATH}" >&2
-  exit 2
-fi
-
-build_notes_file "$NOTES_FILE" "$TAG" "$TITLE" "$version" "$BASE_REF" "$ASSET_PATH"
+build_notes_file "$NOTES_FILE" "$TAG" "$TITLE" "$version" "$BASE_REF"
 
 run_cmd git fetch --tags "$REMOTE"
 run_cmd git tag -a "$TAG" -F "$NOTES_FILE"
@@ -251,14 +237,8 @@ run_cmd git push "$REMOTE" "refs/tags/${TAG}"
 if [[ "$SKIP_RELEASE" -eq 0 ]]; then
   if gh release view "$TAG" >/dev/null 2>&1; then
     run_cmd gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES_FILE"
-    if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]]; then
-      run_cmd gh release upload "$TAG" "$ASSET_PATH" --clobber
-    fi
   else
     create_args=(release create "$TAG")
-    if [[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]]; then
-      create_args+=("$ASSET_PATH")
-    fi
     create_args+=(--title "$TITLE" --notes-file "$NOTES_FILE")
     if [[ "$DRAFT" -eq 1 ]]; then
       create_args+=(--draft)
@@ -273,8 +253,7 @@ Release preparation completed.
 Tag:        ${TAG}
 Title:      ${TITLE}
 Notes file: ${NOTES_FILE}
-Local asset: ${ASSET_PATH}
-Upload local asset: $([[ "$UPLOAD_LOCAL_ASSET" -eq 1 ]] && printf 'true' || printf 'false')
+Release asset: generated later by GitHub Actions
 Local gh available: $([[ "$HAS_GH" -eq 1 ]] && printf 'true' || printf 'false')
 GitHub Release metadata via local gh: $([[ "$SKIP_RELEASE" -eq 0 ]] && printf 'true' || printf 'false')
 Remote:     ${REMOTE}
