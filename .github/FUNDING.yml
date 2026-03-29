@@ -1,0 +1,15 @@
+# 这些是受支持的赞助模式平台
+
+github: [muidea] # 推荐以组织名义接收赞助，显示效果更专业
+patreon: # 如果未来有高级插件订阅可开启
+open_collective: # 适合社区化运作后开启
+ko_fi: # 适合国外用户随手请喝咖啡
+tidelift: # 暂不填
+community_bridge: 
+liberapay: 
+issuehunt: # 适合为特定的 Bug 修复或 Feature 设置悬赏
+lfx_crowdfunding: 
+polar: muidea # 强烈建议开通 polar.sh，支持按 Issue 进度打赏
+buy_me_a_coffee: # 国际通用，界面非常友好
+thanks_dev: 
+custom: ['https://muidea.github.io/donate/'] # 指向你放置微信/支付宝二维码的个人页面
