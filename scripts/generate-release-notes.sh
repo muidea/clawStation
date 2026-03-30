@@ -13,7 +13,7 @@ OUTPUT_FILE="$3"
 BASE_REF="${4:-}"
 ASSET_PATH="${5:-}"
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="${CLAWSTATION_RELEASE_NOTES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$ROOT_DIR"
 
 range_spec() {
@@ -72,7 +72,7 @@ classify_subject() {
     return 0
   fi
 
-  if [[ "$lower" =~ (wizard|dialog|chat|gateway|pairing|token|instance|deploy|probe|restart|rollback|auth|credential|diagnostic|log|tunnel|browser|storage|security|encrypt|private[[:space:]]key|password|macos|windows|transport|integration|host[[:space:]]process|shell|path|managed[[:space:]]access) ]]; then
+  if [[ "$lower" =~ (wizard|dialog|chat|gateway|pairing|token|instance|deploy|probe|restart|rollback|auth|credential|diagnostic|log|tunnel|browser|storage|security|encrypt|private[[:space:]]key|password|macos|windows|transport|integration|host[[:space:]]process|shell|path|managed[[:space:]]access|version|display|release[[:space:]]tag|tag-based|sidebar|brand) ]]; then
     printf 'improvement'
     return 0
   fi

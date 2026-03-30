@@ -25,6 +25,15 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Checkout workflow branch helpers
+        if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+        uses: actions/checkout@v4
+        with:
+          path: workflow-src
+          fetch-depth: 1
+          submodules: false
+          token: ${{ secrets.CI_GH_PAT != '' && secrets.CI_GH_PAT || github.token }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -128,8 +137,13 @@ jobs:
             previous_tag="$(git tag --sort=-creatordate | grep -vx "$RELEASE_TAG" | head -n 1 || true)"
           fi
           notes_file="output/release-notes-${RELEASE_TAG}.md"
+          notes_script="./scripts/generate-release-notes.sh"
 
-          bash ./scripts/generate-release-notes.sh \
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${RELEASE_TAG}" ] && [ -f "workflow-src/scripts/generate-release-notes.sh" ]; then
+            notes_script="workflow-src/scripts/generate-release-notes.sh"
+          fi
+
+          CLAWSTATION_RELEASE_NOTES_ROOT="$GITHUB_WORKSPACE" bash "$notes_script" \
             "$RELEASE_TAG" \
             "$RELEASE_TAG" \
             "$notes_file" \
