@@ -36,9 +36,9 @@ Options:
   -h, --help               Show this help text.
 
 Default flow:
-  Push the release commit and tag only. GitHub Actions builds and publishes the
-  official Windows asset after the tag is pushed. Local compilation is not part
-  of the release process.
+  Push required submodule branches first, then push the release commit and tag.
+  GitHub Actions builds and publishes the official Windows asset after the tag
+  is pushed. Local compilation is not part of the release process.
 EOF
 }
 
@@ -165,6 +165,50 @@ build_notes_file() {
     "$base_ref"
 }
 
+push_submodule_branches() {
+  if [[ ! -f "$ROOT_DIR/.gitmodules" ]]; then
+    return 0
+  fi
+
+  while read -r _key path; do
+    [[ -n "$path" ]] || continue
+
+    if [[ ! -d "$ROOT_DIR/$path" ]]; then
+      echo "submodule path not found: $path" >&2
+      exit 2
+    fi
+
+    if ! git -C "$ROOT_DIR/$path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "submodule is not initialized as a git worktree: $path" >&2
+      exit 2
+    fi
+
+    local branch upstream remote remote_branch
+    branch="$(git -C "$ROOT_DIR/$path" branch --show-current)"
+    if [[ -z "$branch" ]]; then
+      echo "submodule is on a detached HEAD; checkout a branch before release: $path" >&2
+      exit 2
+    fi
+
+    upstream="$(git -C "$ROOT_DIR/$path" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+    if [[ -n "$upstream" ]]; then
+      remote="${upstream%%/*}"
+      remote_branch="${upstream#*/}"
+    else
+      remote="origin"
+      remote_branch="$branch"
+    fi
+
+    if ! git -C "$ROOT_DIR/$path" remote get-url "$remote" >/dev/null 2>&1; then
+      echo "submodule remote not found for $path: $remote" >&2
+      exit 2
+    fi
+
+    echo "Ensuring submodule $path is published via ${remote}/${remote_branch}"
+    run_cmd git -C "$ROOT_DIR/$path" push "$remote" "${branch}:${remote_branch}"
+  done < <(git config --file "$ROOT_DIR/.gitmodules" --get-regexp '^submodule\..*\.path$')
+}
+
 require_cmd git
 HAS_GH=1
 if ! command -v gh >/dev/null 2>&1; then
@@ -225,6 +269,8 @@ if git ls-remote --exit-code --tags "$REMOTE" "refs/tags/${TAG}" >/dev/null 2>&1
 fi
 
 build_notes_file "$NOTES_FILE" "$TAG" "$TITLE" "$version" "$BASE_REF"
+
+push_submodule_branches
 
 run_cmd git fetch --tags "$REMOTE"
 run_cmd git tag -a "$TAG" -F "$NOTES_FILE"
